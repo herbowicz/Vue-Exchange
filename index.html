@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vue Exchange</title>
+  <script src="https://unpkg.com/vue@2.1.3/dist/vue.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css?family=Exo');
+    body {
+      font-family: 'Exo', sans-serif;
+    }
+    section {
+      border: 1px solid black;
+      width: 45%;
+      padding: 10px;
+      margin: 5px;
+      display: inline-block;
+      vertical-align: top;
+    }
+    #buyInput, #sellInput {
+      background-color: ivory;
+    }
+    button {
+      font-size: large;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      text-align: center;
+    }
+    table td, table th {
+      border: 1px solid #ddd;
+      padding: 0 5px;
+    }
+    table tr:nth-child(even){
+      background-color: #f2f2f2;
+    }
+    table tfoot {
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <h1>
+      {{ message }}
+      <button @click="fixing">Fixing</button>
+      {{ resultMessage }}
+    </h1>
+
+    <section id="buyInput">
+      <p>
+        <input type="text" v-model="bName" placeholder="Name"><br>
+        <input type="text" v-model="bPrice" placeholder="Price"><br>
+        <input type="text" v-model="bQuantity" placeholder="Quantity"><br>
+        <button @click="addTransaction(buyers, bName, bPrice, bQuantity)">Add an offer to BUY</button>
+      </p>
+    </section>
+
+    <section id="sellInput">
+      <p>
+        <input type="text" v-model="sName" placeholder="Name"><br>
+        <input type="text" v-model="sPrice" placeholder="Price"><br>
+        <input type="text" v-model="sQuantity" placeholder="Quantity"><br>
+        <button @click="addTransaction(sellers, sName, sPrice, sQuantity)">Add an offer to SELL</button>
+      </p>
+    </section>
+
+    <section id="buyTable">
+      <h3>Buy bids</h3>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Quantity</th>
+        </tr>
+        <tr v-for="buyer in buyers">
+          <td>{{buyer.name}}</td>
+          <td>{{buyer.price}}</td>
+          <td>{{buyer.quantity}}</td>
+        </tr>
+        <tfoot>
+          <td></td>
+          <td>TOTAL:</td>
+          <td>{{ totalQuantity(this.buyers) }}</td>
+        </tfoot>
+      </table>
+    </section>
+
+    <section id="sellTable">
+      <h3>Sell bids</h3>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Quantity</th>
+        </tr>
+        <tr v-for="seller in sellers">
+          <td>{{seller.name}}</td>
+          <td>{{seller.price}}</td>
+          <td>{{seller.quantity}}</td>
+        </tr>
+        <tfoot>
+          <td></td>
+          <td>TOTAL:</td>
+          <td>{{ totalQuantity(this.sellers) }}</td>
+        </tfoot>
+      </table>
+    </section>
+
+    <section id="buyDeals">
+      <h3>Deals: Bought</h3>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Quantity</th>
+        </tr>
+        <tr v-for="buyDeal in buyDeals">
+          <td>{{buyDeal.name}}</td>
+          <td>{{buyDeal.quantity}}</td>
+        </tr>
+        <tfoot>
+          <td>TOTAL:</td>
+          <td>{{ this.totalQuantity(this.buyDeals) }}</td>
+        </tfoot>
+      </table>
+    </section>
+
+    <section id="sellDeals">
+      <h3>Deals: Sold</h3>
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Quantity</th>
+        </tr>
+        <tr v-for="sellDeal in sellDeals">
+          <td>{{sellDeal.name}}</td>
+          <td>{{sellDeal.quantity}}</td>
+        </tr>
+        <tfoot>
+          <td>TOTAL:</td>
+          <td>{{ this.totalQuantity(this.sellDeals) }}</td>
+        </tfoot>
+      </table>
+    </section>
+
+  </div>
+
+  <script>
+    var app = new Vue({
+      el: '#root',
+      data: {
+        message: 'Vue Exchange',
+        resultMessage: '',
+        marketPrice: null,
+        bName: null,
+        bPrice: null,
+        bQuantity: null,
+        buyers: [
+          { name: "A", price: 190, quantity: 10 },
+          { name: "B", price: 185, quantity: 10 },
+          { name: "C", price: 179, quantity: 15 },
+          { name: "D", price: 176, quantity: 45 },
+          { name: "E", price: 150, quantity: 20 },
+        ],
+        sName: null,
+        sPrice: null,
+        sQuantity: null,
+        sellers: [
+          { name: "P", price: 165, quantity: 15 },
+          { name: "Q", price: 167, quantity: 10 },
+          { name: "R", price: 171, quantity: 10 },
+          { name: "S", price: 173, quantity: 10 },
+          { name: "T", price: 174, quantity: 10 },
+        ],
+        buyDeals: [],
+        sellDeals: [],
+        price: null,
+        quantity: null,
+        bId: 0,
+        sId: 0,
+      },
+      methods: {
+        totalQuantity (items) {
+          let total = 0;
+          for (let i = 0; i< items.length; i++) {
+            total += items[i].quantity;
+          }
+          return total;
+        },
+        addTransaction (list, name, price, quantity) {
+          list.push({
+            name: name,
+            price: Number(price),
+            quantity: Number(quantity)
+          })
+          list.sort((a,b) => b.price - a.price)
+          name = price = quantity = null
+        },
+        addItem (id, items, quant) {
+          var foundItem = items.filter(function(item) {
+            return item.name === id;
+          })[0];
+
+          if (foundItem) {
+            foundItem.quantity += quant;
+          } else {
+            return items.push({
+              name: id,
+              quantity: quant
+            });
+          }
+        },
+        fixing () {
+          while(this.totalQuantity(this.buyers) > 0 && this.totalQuantity(this.sellers) > 0 && this.buyers[this.bId].price >= this.sellers[this.sId].price) {
+            let quantityUnit = Math.min(this.buyers[this.bId].quantity, this.sellers[this.sId].quantity)
+            this.buyers[this.bId].quantity -= quantityUnit
+            this.sellers[this.sId].quantity -= quantityUnit
+
+            this.addItem(this.buyers[this.bId].name, this.buyDeals, quantityUnit)
+            this.addItem(this.sellers[this.sId].name, this.sellDeals, quantityUnit)
+
+            console.log(`Buyer ${this.buyers[this.bId].name} with ${quantityUnit} at the price of ${this.buyers[this.bId].price}.`)
+            console.log(`Seller ${this.sellers[this.sId].name} with ${quantityUnit} at the price of ${this.sellers[this.sId].price}.`)
+
+            this.marketPrice = ((this.buyers[this.bId].price + this.sellers[this.sId].price) / 2).toFixed(6)
+            quantityUnit = this.buyers[this.bId].quantity ? this.sId++ : this.bId++
+          }
+          this.resultMessage = `Market price: ${this.marketPrice} Quantity: ${this.totalQuantity(this.buyDeals)}`
+          console.log(this.resultMessage)
+        }
+      },
+    })
+  </script>
+  </body>
+</html>
